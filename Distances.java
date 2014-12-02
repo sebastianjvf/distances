@@ -16,7 +16,7 @@ public class Distances {
     */
     public static int MIN_REFERENCE_TAG_COUNT = 25;
     public static int REFERENCE_TAG_PERCENTAGE = 2;
-    public static int PRINT = 0; // Set to 0 to not print any additional information, 1 to print the progress of the programm
+    public static int PRINT = 1; // Set to 0 to not print any additional information, 1 to print the progress of the programm
 
     /**
      * Establishes a database connection (to a postgre database) and saves all image ids and their corresponding tags to a map (string => string list).
@@ -157,19 +157,44 @@ public class Distances {
     }
 
     /**
-     * Counts all the occurrences of each tag in alltags from imagesTags (map (string => string list))
+     * Creates a tagpool and counts all the occurrences of each tag in imagesTags (map (string => string list))
      *
-     * @param alltags    Map with all the different tags and their count
      * @param imagesTags Map with all the images and their corresponding tags
      * @return void
      */
-    public static void countOccurrences(Map alltags, Map imagesTags) {
+    public static Map countOccurrences(Map imagesTags) {
+
+        if(PRINT == 1)
+            System.out.println("Creating tagpool...\n");
+
+        Map tagpool = new HashMap();
+
+        /* Iterate through the map */
+        Iterator itMap = imagesTags.entrySet().iterator();
+
+        while (itMap.hasNext()) {
+            Map.Entry pairFromMap = (Map.Entry) itMap.next();
+
+             /* Select the list of tags in the pair (ArrayList) */
+            ArrayList tagList = (ArrayList) pairFromMap.getValue();
+
+            /* Iterate through that list and add to the tagpool with value 0 (counts) */
+            for (String s : (ArrayList<String>) tagList) {
+                /* If it doesn't already include the tag... */
+                if (!(tagpool.containsKey(s))) {
+                    tagpool.put(s, 0);
+                }
+            }
+        }
+
+        if(PRINT == 1)
+            System.out.println("Created tagpool.\n");
 
         if(PRINT == 1)
         System.out.println("Counting occurrences of all tags...\n");
 
         /* Iterate through alltags */
-        Iterator iterator = alltags.entrySet().iterator();
+        Iterator iterator = tagpool.entrySet().iterator();
 
         while (iterator.hasNext()) {
             Map.Entry pair = (Map.Entry) iterator.next();
@@ -190,7 +215,7 @@ public class Distances {
                 /* Is search in there? */
                 if(arrayTags.contains(search)) {
                     /* increment value by one in ALLTAGS */
-                    alltags.put(search, (Integer)alltags.get(search) + 1);
+                    tagpool.put(search, (Integer)tagpool.get(search) + 1);
                 }
             }
         }
@@ -199,6 +224,8 @@ public class Distances {
             // System.out.println(alltags);
             System.out.println("Counting successful.\n");
         }
+
+        return tagpool;
     }
 
     /**
@@ -246,8 +273,7 @@ public class Distances {
             2. Count all occurrences and add to tag pool
             3. Choose "int count" REFERENCE_TAG_PERCENTAGE, minimum MIN_REFERENCE_TAG_COUNT
         */
-        Map alltags = createTagPool(imagesTags);
-        countOccurrences(alltags, imagesTags);
+        Map alltags = countOccurrences(imagesTags);
 
         if(PRINT == 1)
         System.out.println("Getting most representative tags...");
@@ -307,15 +333,15 @@ public class Distances {
      * Creates a histogramm in counting, how often a term is used in the same photo in imagesTags with each of the frequent terms
      * (For a histogramm, take both the array frequent terms and the array with the count)
      * @param term Term for which the histogramm is supposed to be calculated
-     * @param frequentTerms Most frequent terms as calculcated by (String values) @getRepresentativeTags
+     * @param representativeTags Most frequent terms as calculcated by (String values) @getRepresentativeTags
      * @param imagesTags Map with the images and their corresponding tags (string => string list)
      * @return
      */
-    public static ArrayList<Integer> calculateCooccurrences(String term, ArrayList<String> frequentTerms, Map imagesTags) {
+    public static ArrayList<Integer> calculateCooccurrences(String term, ArrayList<String> representativeTags, Map imagesTags) {
         ArrayList<Integer> cooccurrences = new ArrayList();
 
         /* Go through frequentTerms and get every single term */
-        for (String term2 : frequentTerms) {
+        for (String term2 : representativeTags) {
             cooccurrences.add(cooccurrenceBetweenTerms(term, term2, imagesTags));
         }
 
@@ -323,8 +349,8 @@ public class Distances {
         if(PRINT == 1) {
 
             System.out.println("The term \"" + term + "\" is used simultaneously as follows:");
-            for (int i = 0; i < frequentTerms.size(); i++) {
-                System.out.println(cooccurrences.get(i) + " times with the term \"" + frequentTerms.get(i) + "\"");
+            for (int i = 0; i < representativeTags.size(); i++) {
+                System.out.println(cooccurrences.get(i) + " times with the term \"" + representativeTags.get(i) + "\"");
             }
 
         }
