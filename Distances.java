@@ -19,7 +19,7 @@ public class Distances {
     public static int PRINT = 1; // Set to 0 to not print any additional information, 1 to print the progress of the programm
 
     /**
-     * Establishes a database connection (to a postgre database) and saves all image ids and their corresponding tags to a map (string => string list).
+     * Establishes a database connection (to a postgres database) and saves all image ids and their corresponding tags to a map (string => string list).
      * Please add an appropriate postgresql-driver that corresponds to your version of the JVM to the build path.
      *
      * @param url      URL to the database
