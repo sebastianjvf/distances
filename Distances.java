@@ -1,6 +1,8 @@
 /* Database connection */
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.sql.*;
 import java.sql.DriverManager;
 
@@ -384,26 +386,71 @@ public class Distances {
 
         /* Initialise matrix with amountTags * amountTags; right now only a tenth! */
         int amountTags = imagesTags.size();
-        double[][] distanceMatrix = new double[amountTags/10][amountTags/10];
+        double[][] distanceMatrix = new double[amountTags/30][amountTags/30];
 
         /* Load all tags in map */
         ArrayList<String> tagpool = createTagPool(imagesTags);
 
-        if(PRINT == 0)
+        if(PRINT == 1)
         System.out.println(tagpool);
 
-        /* Go through tagpool and calculate Jenson-Shanon-Divergence for each pair */
-        for(int i = 0; i < tagpool.size()/10; i++) {
-            for (int i2 = 0; i < tagpool.size()/10; i++) {
-                distanceMatrix[i][i2] = divergenceOfHistogrammes(calculateCooccurrences(tagpool.get(i), representativeTags, imagesTags), calculateCooccurrences(tagpool.get(i2), representativeTags, imagesTags), representativeTags);
+        int times = 0;
+        
+        try {
 
-                if(i == tagpool.size()/10) {
-                    System.out.print("\n");
-                }
+            /* Find source */
+            String directory = (Distances.class.getProtectionDomain().getCodeSource().getLocation() + "").replace("file:", "");
+            System.out.println(directory);
 
-                System.out.print(distanceMatrix[i][i2] + ", ");
+            /* Create file and empty if needed */
+            PrintWriter writer = new PrintWriter(directory + "distancesFlickr.cvs");
+            writer.print("");
+
+            /* Add representative Tags */
+            writer.append("[");
+            for(String s : representativeTags) {
+                writer.append(s + ", ");
             }
+            writer.append("]\n\n");
+            writer.flush();
+
+            for(int i = 0; i < tagpool.size(); i++) {
+                String s = tagpool.get(i);
+
+                if(!(i == (tagpool.size()-1))) {
+                    writer.append(s + ", ");
+                } else {
+                    writer.append(s + "\n");
+                }
+            }
+
+            /* Go through tagpool and calculate Jenson-Shanon-Divergence for each pair */
+            for(int i = 0; i < tagpool.size()/30; i++) {
+                for (int i2 = 0; i < tagpool.size()/30; i++) {
+                    distanceMatrix[i][i2] = divergenceOfHistogrammes(calculateCooccurrences(tagpool.get(i), representativeTags, imagesTags), calculateCooccurrences(tagpool.get(i2), representativeTags, imagesTags), representativeTags);
+
+                    /* New line if we start counting again */
+                    if(i == 0) {
+                       writer.append("\n" + tagpool.get(i));
+                    }
+
+                    /* Add line */
+                    if(!(i == (tagpool.size()/30)-1)) {
+                        writer.append(distanceMatrix[i][i2] + ", ");
+                    } else {
+                        writer.append(distanceMatrix[i][i2] + "");
+                    }
+                    
+                    times++;
+                    
+                }
+            }
+
+        } catch(IOException e) {
+            e.printStackTrace();
         }
+        
+        System.out.println(times);
 
         return distanceMatrix;
 
