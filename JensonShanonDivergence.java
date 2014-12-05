@@ -1,3 +1,5 @@
+package statsemdistancenetbeans;
+
 /* Copyright (C) 2003 Univ. of Massachusetts Amherst, Computer Science Dept.
    This file is part of "MALLET" (MAchine Learning for LanguagE Toolkit).
    http://www.cs.umass.edu/~mccallum/mallet

@@ -1,3 +1,5 @@
+package statsemdistancenetbeans;
+
 /* Database connection */
 import java.io.File;
 import java.io.FileWriter;
@@ -12,7 +14,7 @@ import java.util.*;
 /**
  * Class "Distances" that uses the flickr database to deliver a distance matrix for existing tags based on their
  * cooccurrence in the images. 
- * @author Patrick Sebastian John von Freyend & Elöd Egyed-Zsigmond
+ * @author Patrick Sebastian John von Freyend & Elï¿½d Egyed-Zsigmond
  * @version 1.0
  */
 public class Distances {
@@ -22,6 +24,7 @@ public class Distances {
     public static int MIN_REFERENCE_TAG_COUNT = 25;
     public static int REFERENCE_TAG_PERCENTAGE = 2;
     public static int PRINT = 0; // Set to 0 to not print any additional information, 1 to print the progress of the programm
+    public static int TEST_POOL_SIZE_DIVISION = 1; // Set to 0 to not print any additional information, 1 to print the progress of the programm
 
     /**
      * Establishes a database connection (to a postgres database) and saves all image ids and their corresponding tags to a map (string => string list).
@@ -50,23 +53,23 @@ public class Distances {
 
             /* Read images (their ids) and their tags from the database and saves them to a map */
             stmt = c.createStatement();
-            ResultSet rs = stmt.executeQuery("" +
-                    "SELECT \n" +
-                    "  \"Image\".id, \n" +
-                    "  \"imageTag\".tag \n" +
+            String theQuery = "SELECT \n" +
+                    "  \"imagefiltred\".id, \n" +
+                    "  \"imagetagfiltred\".tag \n" +
                     "FROM \n" +
                     "\"Tag\", \n" +
-                    "\"Image\", \n" +
-                    "\"imageTag\"\n" +
+                    "\"imagefiltred\", \n" +
+                    "\"imagetagfiltred\"\n" +
                     "WHERE \n" +
-                    "  \"Image\".id = \"imageTag\".imageid AND\n" +
-                    "  \"Tag\".text = \"imageTag\".tag AND\n" +
+                    "  \"imagefiltred\".id = \"imagetagfiltred\".imageid AND\n" +
+                    "  \"Tag\".text = \"imagetagfiltred\".tag AND\n" +
                     "  \"Tag\".gettytag = true AND\n" +
-                    "  \"Tag\".language = 'fr' AND\n" +
-                    "  \"Image\".lat >= 50 AND \n" +
-                    "  \"Image\".lat <= 55 AND \n" +
-                    "  \"Image\".lon >= 5 AND \n" +
-                    "  \"Image\".lon <= 15");
+//                    "  \"Tag\".language = 'fr' AND\n" +
+                    "  \"imagefiltred\".lat >= 50 AND \n" +
+                    "  \"imagefiltred\".lat <= 55 AND \n" +
+                    "  \"imagefiltred\".lon >= 5 AND \n" +
+                    "  \"imagefiltred\".lon <= 15";
+            ResultSet rs = stmt.executeQuery( theQuery );
 
             /* Write into the Map */
             while (rs.next()) {
@@ -387,7 +390,7 @@ public class Distances {
 
         /* Initialise matrix with amountTags * amountTags; right now only a tenth! */
         int amountTags = imagesTags.size();
-        double[][] distanceMatrix = new double[amountTags/30][amountTags/30];
+        double[][] distanceMatrix = new double[amountTags/TEST_POOL_SIZE_DIVISION][amountTags/TEST_POOL_SIZE_DIVISION];
 
         /* Load all tags in map */
         ArrayList<String> tagpool = createTagPool(imagesTags);
@@ -397,6 +400,36 @@ public class Distances {
 
         int times = 0;
         
+
+            /* Go through tagpool and calculate Jenson-Shanon-Divergence for each pair */
+            for(int i = 0; i < amountTags/TEST_POOL_SIZE_DIVISION; i++) {
+                System.out.print(i + ", ");
+                for (int i2 = i+1; i2 < amountTags/TEST_POOL_SIZE_DIVISION; i2++) {
+                    try {
+                        ArrayList<Integer> cooccurrence1 = calculateCooccurrences(tagpool.get(i), representativeTags, imagesTags);
+                        ArrayList<Integer> cooccurrence2 = calculateCooccurrences(tagpool.get(i2), representativeTags, imagesTags);
+                        distanceMatrix[i][i2] = divergenceOfHistogrammes(cooccurrence1,cooccurrence2 , representativeTags);
+                    }
+                    catch (Exception e){
+                        System.out.println("i:"+i+"; i2:"+i2+"; tagpoolsize/TEST_POOL_SIZE_DIVISION :"+tagpool.size()/TEST_POOL_SIZE_DIVISION);
+                        System.exit(-1);
+                    }
+
+                    
+                    times++;
+                    
+                }
+            }
+
+     
+        
+        System.out.println(times);
+        writeDistanceMatrixIntoFile(distanceMatrix,representativeTags );
+        return distanceMatrix;
+
+    }
+    
+    public static int writeDistanceMatrixIntoFile(double[][] theMatrix, ArrayList<String> representativeTags){
         try {
 
             /* Find source */
@@ -407,72 +440,59 @@ public class Distances {
             PrintWriter writer = new PrintWriter(directory + "distancesFlickr.cvs");
             writer.print("");
 
-            /* Add representative Tags */
-            writer.append("[");
-            for(String s : representativeTags) {
-                writer.append(s + ", ");
+//            /* Add representative Tags */
+//            writer.append("[");
+//            for(String s : representativeTags) {
+//                writer.append(s + ", ");
+//            }
+//            writer.append("]\n\n");
+//            writer.flush();
+
+//            for(int i = 0; i < tagpool.size(); i++) {
+//                String s = tagpool.get(i);
+//
+//                if(!(i == (tagpool.size()-1))) {
+//                    writer.append(s + ", ");
+//                } else {
+//                    writer.append(s + "\n");
+//                }
+//            }
+        int size = theMatrix.length;
+        for (int j = 0; j < size; j++) {
+            writer.append(j + ", ");
+            for (int i = 0; i < size; i++) {
+                writer.append(theMatrix[i][j] + "; ");
+
             }
-            writer.append("]\n\n");
-            writer.flush();
-
-            for(int i = 0; i < tagpool.size(); i++) {
-                String s = tagpool.get(i);
-
-                if(!(i == (tagpool.size()-1))) {
-                    writer.append(s + ", ");
-                } else {
-                    writer.append(s + "\n");
-                }
-            }
-
-            /* Go through tagpool and calculate Jenson-Shanon-Divergence for each pair */
-            for(int i = 0; i < tagpool.size()/30; i++) {
-                for (int i2 = 0; i < tagpool.size()/30; i++) {
-                    distanceMatrix[i][i2] = divergenceOfHistogrammes(calculateCooccurrences(tagpool.get(i), representativeTags, imagesTags), calculateCooccurrences(tagpool.get(i2), representativeTags, imagesTags), representativeTags);
-
-                    /* New line if we start counting again */
-                    if(i == 0) {
-                       writer.append("\n" + tagpool.get(i));
-                    }
-
-                    /* Add line */
-                    if(!(i == (tagpool.size()/30)-1)) {
-                        writer.append(distanceMatrix[i][i2] + ", ");
-                    } else {
-                        writer.append(distanceMatrix[i][i2] + "");
-                    }
-                    
-                    times++;
-                    
-                }
-            }
-
-        } catch(IOException e) {
-            e.printStackTrace();
+            writer.append("\n");
         }
+
+            
+            
+   } catch(IOException e) {
+            e.printStackTrace();
+            return -1;
+        } 
         
-        System.out.println(times);
-
-        return distanceMatrix;
-
+        return 1;
     }
 
-    public static void main(String[] args) {
-        /* Create Map */
-        Map imagesTags = mapFromDatabase("jdbc:postgresql://localhost:5432/gettyBase", "postgres", "");
-
-        /* Calculate representativeTags */
-        ArrayList representativeTags = getRepresentativeTags(imagesTags, REFERENCE_TAG_PERCENTAGE);
-
-        /* System.out.println(representativeTags);
-
-        // Testing histogramm function
-        ArrayList<Integer> histogramm1 = calculateCooccurrences("allemagne", representativeTags, imagesTags);
-        ArrayList<Integer> histogramm2 = calculateCooccurrences("france", representativeTags, imagesTags);
-        System.out.println(divergenceOfHistogrammes(histogramm1, histogramm2, representativeTags));
-        */
-
-        /* Distance Matrix */
-        calculcateDistanceMatrix(imagesTags, representativeTags);
-    }
+//    public static void main(String[] args) {
+//        /* Create Map */
+//        Map imagesTags = mapFromDatabase("jdbc:postgresql://localhost:5432/2014GettyClean", "postgres", "postgres");
+//
+//        /* Calculate representativeTags */
+//        ArrayList representativeTags = getRepresentativeTags(imagesTags, REFERENCE_TAG_PERCENTAGE);
+//
+//        /* System.out.println(representativeTags);
+//
+//        // Testing histogramm function
+//        ArrayList<Integer> histogramm1 = calculateCooccurrences("allemagne", representativeTags, imagesTags);
+//        ArrayList<Integer> histogramm2 = calculateCooccurrences("france", representativeTags, imagesTags);
+//        System.out.println(divergenceOfHistogrammes(histogramm1, histogramm2, representativeTags));
+//        */
+//
+//        /* Distance Matrix */
+//        calculcateDistanceMatrix(imagesTags, representativeTags);
+//    }
 }
