@@ -6,8 +6,9 @@ import java.sql.DriverManager;
 import java.util.*;
 
 /**
- * Class "Distances" that uses the flickr database to deliver a distance matrix for existing tags
- * @author Patrick Sebastian John von Freyend
+ * Class "Distances" that uses the flickr database to deliver a distance matrix for existing tags based on their
+ * cooccurrence in the images. 
+ * @author Patrick Sebastian John von Freyend & Elöd Egyed-Zsigmond
  * @version 1.0
  */
 public class Distances {
@@ -387,7 +388,7 @@ public class Distances {
 
     public static void main(String[] args) {
         /* Create Map */
-        Map imagesTags = mapFromDatabase("jdbc:postgresql://localhost:5432/ist", "sebastianjvf", "");
+        Map imagesTags = mapFromDatabase("jdbc:postgresql://localhost:5432/gettyBase", "postgres", "");
 
         /* Calculate representativeTags */
         ArrayList representativeTags = getRepresentativeTags(imagesTags, REFERENCE_TAG_PERCENTAGE);
