@@ -1,4 +1,4 @@
-package statsemdistancenetbeans;
+package statsemdistance;
 
 /* Copyright (C) 2003 Univ. of Massachusetts Amherst, Computer Science Dept.
    This file is part of "MALLET" (MAchine Learning for LanguagE Toolkit).
@@ -25,7 +25,6 @@ public class JensonShanonDivergence {
         return (klDivergence(p1, average) + klDivergence(p2, average))/2;
     }
 
-
     public static final double log2 = Math.log(2);
     /**
      * Returns the KL divergence, K(p1 || p2).
@@ -37,7 +36,6 @@ public class JensonShanonDivergence {
      *
      */
     public static double klDivergence(double[] p1, double[] p2) {
-
 
         double klDiv = 0.0;
 

@@ -1,8 +1,4 @@
-package statsemdistancenetbeans;
-
-/* Database connection */
-import java.io.File;
-import java.io.FileWriter;
+package statsemdistance;/* Database connection */
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.*;
@@ -14,7 +10,7 @@ import java.util.*;
 /**
  * Class "Distances" that uses the flickr database to deliver a distance matrix for existing tags based on their
  * cooccurrence in the images. 
- * @author Patrick Sebastian John von Freyend & El�d Egyed-Zsigmond
+ * @author Patrick Sebastian John von Freyend
  * @version 1.0
  */
 public class Distances {
@@ -64,7 +60,6 @@ public class Distances {
                     "  \"imagefiltred\".id = \"imagetagfiltred\".imageid AND\n" +
                     "  \"Tag\".text = \"imagetagfiltred\".tag AND\n" +
                     "  \"Tag\".gettytag = true AND\n" +
-//                    "  \"Tag\".language = 'fr' AND\n" +
                     "  \"imagefiltred\".lat >= 50 AND \n" +
                     "  \"imagefiltred\".lat <= 55 AND \n" +
                     "  \"imagefiltred\".lon >= 5 AND \n" +
@@ -113,11 +108,17 @@ public class Distances {
 
     }
 
+    public static Map mapFromCVS() {
+        Map imagesTags = new HashMap();
+
+        return imagesTags;
+    }
+
     /**
      * Prints the contents of a map to the console.
      *
-     * @param map URL to the database
-     * @return void
+     * @param map   URL to the database
+     * @return      void
      */
     public static void printMap(Map map) {
         Iterator iterator = map.entrySet().iterator();
@@ -130,10 +131,10 @@ public class Distances {
     /**
      * Creates a tag pool (map with String (tag) => int) with all the different tags that exist in a map
      *
-     * @param map Map with all the images and their corresponding tags
-     * @return void
+     * @param imagesTags   Map with all the images and their corresponding tags
+     * @return      void
      */
-    public static ArrayList<String> createTagPool(Map map) {
+    public static ArrayList<String> createTagPool(Map imagesTags) {
 
         if(PRINT == 1)
         System.out.println("Creating tagpool...\n");
@@ -141,7 +142,7 @@ public class Distances {
         ArrayList<String> tagpool = new ArrayList<String>();
 
         /* Iterate through the map */
-        Iterator itMap = map.entrySet().iterator();
+        Iterator itMap = imagesTags.entrySet().iterator();
 
         while (itMap.hasNext()) {
             Map.Entry pairFromMap = (Map.Entry) itMap.next();
@@ -173,7 +174,7 @@ public class Distances {
     public static Map countOccurrences(Map imagesTags) {
 
         if(PRINT == 1)
-            System.out.println("Creating tagpool and counting occurrences...\n");
+        System.out.println("Creating tagpool and counting occurrences...\n");
 
         Map tagpool = new HashMap();
 
@@ -212,10 +213,8 @@ public class Distances {
             }
         }
 
-        if(PRINT == 1) {
-            // System.out.println(alltags);
-            System.out.println("Created tagpool, counting successful.\n");
-        }
+        if(PRINT == 1)
+        System.out.println("Created tagpool, counting successful.\n");
 
         return tagpool;
     }
@@ -252,8 +251,8 @@ public class Distances {
     /**
      * This functions returns, given a minimum reference count of at least MIN_REFERENCE_TAG_COUNT but of a percentage of REFERENCE_TAG_PERCENTAGE (can be set above)
      * if higher, the set of representative tags as an array list from a map with the imageid => tags (string => string list)
-     * @param imagesTags
-     * @param percentage
+     * @param imagesTags Map with all the images and their corresponding tags
+     * @param percentage Minimum percentage, to set in REFERENCE_TAG_PERCENTAGE
      * @return
      */
     public static ArrayList getRepresentativeTags(Map imagesTags, int percentage) {
@@ -398,9 +397,6 @@ public class Distances {
         if(PRINT == 1)
         System.out.println(tagpool);
 
-        int times = 0;
-        
-
             /* Go through tagpool and calculate Jenson-Shanon-Divergence for each pair */
             for(int i = 0; i < amountTags/TEST_POOL_SIZE_DIVISION; i++) {
                 System.out.print(i + ", ");
@@ -414,62 +410,43 @@ public class Distances {
                         System.out.println("i:"+i+"; i2:"+i2+"; tagpoolsize/TEST_POOL_SIZE_DIVISION :"+tagpool.size()/TEST_POOL_SIZE_DIVISION);
                         System.exit(-1);
                     }
-
-                    
-                    times++;
                     
                 }
             }
 
-     
-        
-        System.out.println(times);
-        writeDistanceMatrixIntoFile(distanceMatrix,representativeTags );
+        writeDistanceMatrixIntoFile(distanceMatrix);
+
         return distanceMatrix;
 
     }
-    
-    public static int writeDistanceMatrixIntoFile(double[][] theMatrix, ArrayList<String> representativeTags){
+
+    /**
+     * Writes a distance matrix calculated by calculcateDistanceMatrix into a file named "distances.cvs" in the *.cvs-format.
+     * @param theMatrix A matrix returned by calculcateDistanceMatrix
+     * @return
+     */
+    public static int writeDistanceMatrixIntoFile(double[][] theMatrix) {
+
         try {
 
             /* Find source */
             String directory = (Distances.class.getProtectionDomain().getCodeSource().getLocation() + "").replace("file:", "");
-            System.out.println(directory);
 
             /* Create file and empty if needed */
-            PrintWriter writer = new PrintWriter(directory + "distancesFlickr.cvs");
+            PrintWriter writer = new PrintWriter(directory + "distances.cvs");
             writer.print("");
 
-//            /* Add representative Tags */
-//            writer.append("[");
-//            for(String s : representativeTags) {
-//                writer.append(s + ", ");
-//            }
-//            writer.append("]\n\n");
-//            writer.flush();
+                int size = theMatrix.length;
+                for (int j = 0; j < size; j++) {
+                    writer.append(j + ", ");
+                    for (int i = 0; i < size; i++) {
+                        writer.append(theMatrix[i][j] + "; ");
 
-//            for(int i = 0; i < tagpool.size(); i++) {
-//                String s = tagpool.get(i);
-//
-//                if(!(i == (tagpool.size()-1))) {
-//                    writer.append(s + ", ");
-//                } else {
-//                    writer.append(s + "\n");
-//                }
-//            }
-        int size = theMatrix.length;
-        for (int j = 0; j < size; j++) {
-            writer.append(j + ", ");
-            for (int i = 0; i < size; i++) {
-                writer.append(theMatrix[i][j] + "; ");
+                    }
+                    writer.append("\n");
+                }
 
-            }
-            writer.append("\n");
-        }
-
-            
-            
-   } catch(IOException e) {
+        } catch(IOException e) {
             e.printStackTrace();
             return -1;
         } 
@@ -477,22 +454,21 @@ public class Distances {
         return 1;
     }
 
-//    public static void main(String[] args) {
-//        /* Create Map */
-//        Map imagesTags = mapFromDatabase("jdbc:postgresql://localhost:5432/2014GettyClean", "postgres", "postgres");
-//
-//        /* Calculate representativeTags */
-//        ArrayList representativeTags = getRepresentativeTags(imagesTags, REFERENCE_TAG_PERCENTAGE);
-//
-//        /* System.out.println(representativeTags);
-//
-//        // Testing histogramm function
-//        ArrayList<Integer> histogramm1 = calculateCooccurrences("allemagne", representativeTags, imagesTags);
-//        ArrayList<Integer> histogramm2 = calculateCooccurrences("france", representativeTags, imagesTags);
-//        System.out.println(divergenceOfHistogrammes(histogramm1, histogramm2, representativeTags));
-//        */
-//
-//        /* Distance Matrix */
-//        calculcateDistanceMatrix(imagesTags, representativeTags);
-//    }
+    /**
+     * Prints a distance matrix calculated by the calculate distance calculcateDistanceMatrix function.
+     * @param theMatrix A matrix returned by calculcateDistanceMatrix
+     */
+    public static void printDistanceMatrix(double[][] theMatrix) {
+
+        int size = theMatrix.length;
+        for (int j = 0; j < size; j++) {
+            System.out.print(j + ", ");
+
+            for (int i = 0; i < size; i++) {
+                System.out.print(theMatrix[i][j] + ", ");
+            }
+
+            System.out.println("");
+        }
+    }
 }
