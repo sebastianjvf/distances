@@ -1,6 +1,5 @@
 package statsemdistance;/* Database connection */
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
 import java.sql.*;
 import java.sql.DriverManager;
 
@@ -8,7 +7,7 @@ import java.sql.DriverManager;
 import java.util.*;
 
 /**
- * Class "Distances" that uses the flickr database to deliver a distance matrix for existing tags based on their
+ * Class "Distances" that uses the flickr database or a *.cvs file to deliver a distance matrix for existing tags based on their
  * cooccurrence in the images. 
  * @author Patrick Sebastian John von Freyend
  * @version 1.0
@@ -20,7 +19,7 @@ public class Distances {
     public static int MIN_REFERENCE_TAG_COUNT = 25;
     public static int REFERENCE_TAG_PERCENTAGE = 2;
     public static int PRINT = 0; // Set to 0 to not print any additional information, 1 to print the progress of the programm
-    public static int TEST_POOL_SIZE_DIVISION = 1; // Set to 0 to not print any additional information, 1 to print the progress of the programm
+    public static int TEST_POOL_SIZE_DIVISION = 1; // Reduce the size of the test set by setting a higher number; 1 indicating actual size
 
     /**
      * Establishes a database connection (to a postgres database) and saves all image ids and their corresponding tags to a map (string => string list).
@@ -108,9 +107,59 @@ public class Distances {
 
     }
 
-    public static Map mapFromCVS() {
+    /**
+     * Creates a map vom the information giving in a *.cvs file located in the /res folder (string => string list), using the first cell of a row as
+     * identifier. If a file can't be read, make sure that you are using the right path.
+     *
+     * @param fileName      Input path for *.cvs file
+     * @return Map
+     */
+    public static Map imageTagsFromFile(String fileName) {
         Map imagesTags = new HashMap();
 
+        /* Set path to file */
+        String filepath = System.getProperty("user.dir");
+        filepath = filepath + "/src/statsemdistance/res/" + fileName;
+
+        BufferedReader br = null;
+        String line;
+        String split = ",";
+
+        try {
+
+            br = new BufferedReader(new FileReader(filepath));
+            while ((line = br.readLine()) != null) {
+
+                /* Create an array with the strings of every line */
+                String[] words = line.split(split);
+
+                for(int i = 0; i < words.length; i++) {
+                    words[i] = words[i].replace(" \"", "").replace("\"", "");
+                }
+
+                /* add the key and create internal list */
+                imagesTags.put(words[0], new ArrayList());
+
+                /* Go through the internal list and add all the tags */
+                List internal = (ArrayList) imagesTags.get(words[0]);
+
+                for (int i = 1; i < words.length; i++) {
+                    /* Key already exists for the image; Search for tag in the internal list and add it */
+                    internal.add(words[i]);
+                }
+            }
+
+        } catch (FileNotFoundException e) { e.printStackTrace();
+        } catch (IOException e) { e.printStackTrace();
+        } finally {
+
+            if (br != null) {
+                try { br.close();} catch (IOException e) { e.printStackTrace(); }
+            }
+
+        }
+
+        System.out.println("Reading done");
         return imagesTags;
     }
 
@@ -118,7 +167,6 @@ public class Distances {
      * Prints the contents of a map to the console.
      *
      * @param map   URL to the database
-     * @return      void
      */
     public static void printMap(Map map) {
         Iterator iterator = map.entrySet().iterator();
@@ -132,7 +180,7 @@ public class Distances {
      * Creates a tag pool (map with String (tag) => int) with all the different tags that exist in a map
      *
      * @param imagesTags   Map with all the images and their corresponding tags
-     * @return      void
+     * @return void
      */
     public static ArrayList<String> createTagPool(Map imagesTags) {
 
@@ -222,7 +270,7 @@ public class Distances {
     /**
      * Sorts a map with key => integer in descending order (switch o2 and o1 for ascending, if needed)
      * @param sort Map that is to be sorted
-     * @return
+     * @return Map<String, Integer>
      */
     private static Map<String, Integer> sortMapDescending(Map<String, Integer> sort) {
 
@@ -253,7 +301,7 @@ public class Distances {
      * if higher, the set of representative tags as an array list from a map with the imageid => tags (string => string list)
      * @param imagesTags Map with all the images and their corresponding tags
      * @param percentage Minimum percentage, to set in REFERENCE_TAG_PERCENTAGE
-     * @return
+     * @return ArrayList
      */
     public static ArrayList getRepresentativeTags(Map imagesTags, int percentage) {
 
@@ -297,7 +345,7 @@ public class Distances {
      * @param term
      * @param term2
      * @param imagesTags Map with the images and their corresponding tags (string => string list)
-     * @return
+     * @return int
      */
     public static int cooccurrenceBetweenTerms(String term, String term2, Map imagesTags) {
         /* Count of images that both term1 and term 2 are part of in maps */
@@ -326,7 +374,7 @@ public class Distances {
      * @param term Term for which the histogramm is supposed to be calculated
      * @param representativeTags Most frequent terms as calculcated by (String values) @getRepresentativeTags
      * @param imagesTags Map with the images and their corresponding tags (string => string list)
-     * @return
+     * @return ArrayList<Integer>
      */
     public static ArrayList<Integer> calculateCooccurrences(String term, ArrayList<String> representativeTags, Map imagesTags) {
         ArrayList<Integer> cooccurrences = new ArrayList();
@@ -353,7 +401,7 @@ public class Distances {
      * @param histogramm1
      * @param histogramm2
      * @param representativeTags
-     * @return
+     * @return double
      */
     public static double divergenceOfHistogrammes(ArrayList<Integer> histogramm1, ArrayList<Integer> histogramm2, ArrayList<String> representativeTags) {
         double divergence = 0;
@@ -383,7 +431,7 @@ public class Distances {
      * It then writes this matrix in a *.csv-file located in the main folder.
      * @param imagesTags
      * @param representativeTags
-     * @return
+     * @return double[][]
      */
     public static double[][] calculcateDistanceMatrix(Map imagesTags, ArrayList<String> representativeTags) {
 
@@ -407,13 +455,14 @@ public class Distances {
                         distanceMatrix[i][i2] = divergenceOfHistogrammes(cooccurrence1,cooccurrence2 , representativeTags);
                     }
                     catch (Exception e){
-                        System.out.println("i:"+i+"; i2:"+i2+"; tagpoolsize/TEST_POOL_SIZE_DIVISION :"+tagpool.size()/TEST_POOL_SIZE_DIVISION);
+                        System.out.println("i:" + i + "; i2:" + i2 + "; tagpoolsize/TEST_POOL_SIZE_DIVISION :" + tagpool.size()/TEST_POOL_SIZE_DIVISION);
                         System.exit(-1);
                     }
                     
                 }
             }
 
+        System.out.println("");
         writeDistanceMatrixIntoFile(distanceMatrix);
 
         return distanceMatrix;
@@ -423,7 +472,7 @@ public class Distances {
     /**
      * Writes a distance matrix calculated by calculcateDistanceMatrix into a file named "distances.cvs" in the *.cvs-format.
      * @param theMatrix A matrix returned by calculcateDistanceMatrix
-     * @return
+     * @return int
      */
     public static int writeDistanceMatrixIntoFile(double[][] theMatrix) {
 
