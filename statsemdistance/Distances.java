@@ -18,7 +18,7 @@ public class Distances {
     public static int MIN_REFERENCE_TAG_COUNT = 25;
     public static int REFERENCE_TAG_PERCENTAGE = 2;
     public static int PRINT = 0; // Set to 0 to not print any additional information, 1 to print the progress of the programm
-    public static int TEST_POOL_SIZE_DIVISION = 6; // Reduce the size of the test set by setting a higher number; 1 indicating actual size
+    public static int TEST_POOL_SIZE_DIVISION = 1; // Reduce the size of the test set by setting a higher number; 1 indicating actual size
 
     /**
      * Establishes a database connection (to a postgres database) and saves all image ids and their corresponding tags to a map (string => string list).
