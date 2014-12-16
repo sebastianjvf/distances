@@ -32,7 +32,7 @@ public class JensonShanonDivergence {
      * The log is w.r.t. base 2. <p>
      *
      * *Note*: If any value in <tt>p2</tt> is <tt>0.0</tt> then the KL-divergence
-     * is <tt>infinite</tt>. Limin changes it to zero instead of infinite. 
+     * is <tt>infinite</tt>. Limin changes it to zero instead of infinite.
      *
      */
     public static double klDivergence(double[] p1, double[] p2) {

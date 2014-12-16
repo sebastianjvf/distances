@@ -6,7 +6,7 @@ import java.util.Map;
 public class StatSemDistance {
 
     public static void main(String[] args) {
-        // Map imagesTags = Distances.mapFromDatabase("jdbc:postgresql://localhost:5432/ist_zwei", "sebastianjvf", "");
+        Map imagesTags = Distances.mapFromDatabase("jdbc:postgresql://localhost:5432/ist_zwei", "sebastianjvf", "");
 
         /* EXAMPLE
         *
@@ -16,7 +16,7 @@ public class StatSemDistance {
         *  4. Compute a distance matrix by utilising the representative tags
         *
         * */
-        Map imagesTags = Distances.imageTagsFromFile("example.cvs");
+        // Map imagesTags = Distances.imageTagsFromFile("example.cvs");
 
         if (Distances.PRINT == 1)
             System.out.println("ImageTags size : " + imagesTags.size());

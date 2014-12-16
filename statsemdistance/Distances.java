@@ -10,7 +10,6 @@ import java.util.*;
  * Class "Distances" that uses the flickr database or a *.cvs file to deliver a distance matrix for existing tags based on their
  * cooccurrence in the images. 
  * @author Patrick Sebastian John von Freyend
- * @version 1.0
  */
 public class Distances {
     /**
@@ -19,7 +18,7 @@ public class Distances {
     public static int MIN_REFERENCE_TAG_COUNT = 25;
     public static int REFERENCE_TAG_PERCENTAGE = 2;
     public static int PRINT = 0; // Set to 0 to not print any additional information, 1 to print the progress of the programm
-    public static int TEST_POOL_SIZE_DIVISION = 1; // Reduce the size of the test set by setting a higher number; 1 indicating actual size
+    public static int TEST_POOL_SIZE_DIVISION = 6; // Reduce the size of the test set by setting a higher number; 1 indicating actual size
 
     /**
      * Establishes a database connection (to a postgres database) and saves all image ids and their corresponding tags to a map (string => string list).
@@ -177,7 +176,7 @@ public class Distances {
     }
 
     /**
-     * Creates a tag pool (map with String (tag) => int) with all the different tags that exist in a map
+     * Creates a tag pool (ArrayList with INT (int) => string) with all the different tags that exist in a map
      *
      * @param imagesTags   Map with all the images and their corresponding tags
      * @return void
@@ -198,7 +197,7 @@ public class Distances {
              /* Select the list of tags in the pair (ArrayList) */
             ArrayList tagList = (ArrayList) pairFromMap.getValue();
 
-            /* Iterate through that list and add to the tagpool with value 0 (counts) */
+            /* Iterate through that list and add tags */
             for (String s : (ArrayList<String>) tagList) {
                 /* If it doesn't already include the tag... */
                 if (!(tagpool.contains(s))) {
@@ -400,10 +399,9 @@ public class Distances {
      * Calculates the divergence of two histogramms created by calculateCooccurences according to the Jenson-Shanon Divergence.
      * @param histogramm1
      * @param histogramm2
-     * @param representativeTags
      * @return double
      */
-    public static double divergenceOfHistogrammes(ArrayList<Integer> histogramm1, ArrayList<Integer> histogramm2, ArrayList<String> representativeTags) {
+    public static double divergenceOfHistogrammes(ArrayList<Integer> histogramm1, ArrayList<Integer> histogramm2) {
         double divergence = 0;
 
         if(histogramm1.size() != histogramm2.size()) {
@@ -437,7 +435,8 @@ public class Distances {
 
         /* Initialise matrix with amountTags * amountTags; right now only a tenth! */
         int amountTags = imagesTags.size();
-        double[][] distanceMatrix = new double[amountTags/TEST_POOL_SIZE_DIVISION][amountTags/TEST_POOL_SIZE_DIVISION];
+        int poolSize = amountTags/TEST_POOL_SIZE_DIVISION;
+        double[][] distanceMatrix = new double[poolSize][poolSize];
 
         /* Load all tags in map */
         ArrayList<String> tagpool = createTagPool(imagesTags);
@@ -445,22 +444,76 @@ public class Distances {
         if(PRINT == 1)
         System.out.println(tagpool);
 
-            /* Go through tagpool and calculate Jenson-Shanon-Divergence for each pair */
-            for(int i = 0; i < amountTags/TEST_POOL_SIZE_DIVISION; i++) {
+        /* Calculate a map with the tags and their corresponding histogramme */
+        Map<Integer, ArrayList> histogramms = new HashMap();
+        for (int i = 0; i < poolSize; i++) {
+            ArrayList<Integer> cooccurrence = calculateCooccurrences(tagpool.get(i), representativeTags, imagesTags);
+            histogramms.put(i, cooccurrence);
+        }
+
+            /* Go through those histogramms and calculate Jenson-Shanon-Divergence for each pair */
+            for(int i = 0; i < poolSize; i++) {
                 System.out.print(i + ", ");
-                for (int i2 = i+1; i2 < amountTags/TEST_POOL_SIZE_DIVISION; i2++) {
+                for (int i2 = i+1; i2 < poolSize; i2++) {
                     try {
-                        ArrayList<Integer> cooccurrence1 = calculateCooccurrences(tagpool.get(i), representativeTags, imagesTags);
-                        ArrayList<Integer> cooccurrence2 = calculateCooccurrences(tagpool.get(i2), representativeTags, imagesTags);
-                        distanceMatrix[i][i2] = divergenceOfHistogrammes(cooccurrence1,cooccurrence2 , representativeTags);
+                        distanceMatrix[i][i2] = divergenceOfHistogrammes(histogramms.get(i), histogramms.get(i2));
                     }
                     catch (Exception e){
-                        System.out.println("i:" + i + "; i2:" + i2 + "; tagpoolsize/TEST_POOL_SIZE_DIVISION :" + tagpool.size()/TEST_POOL_SIZE_DIVISION);
+                        System.out.println("i:" + i + "; i2:" + i2 + "; amountTags/TEST_POOL_SIZE_DIVISION :" + poolSize);
                         System.exit(-1);
                     }
                     
                 }
             }
+
+        System.out.println("");
+        writeDistanceMatrixIntoFile(distanceMatrix);
+
+        return distanceMatrix;
+
+    }
+
+    /**
+     * Calculates a distance matrix for each tag in imagesTags and its representative tags (with the help of the Janson-Shanon-Divergence).
+     * The calculation is threaded to allow a faster evaluation.
+     * @param imagesTags
+     * @param representativeTags
+     * @return double[][]
+     */
+    public static double[][] calculcateDistanceMatrixThreaded(Map imagesTags, ArrayList<String> representativeTags) {
+
+        /* Initialise matrix with amountTags * amountTags; right now only a tenth! */
+        int amountTags = imagesTags.size();
+        int poolSize = amountTags/TEST_POOL_SIZE_DIVISION;
+        double[][] distanceMatrix = new double[poolSize][poolSize];
+
+        /* Load all tags in map */
+        ArrayList<String> tagpool = createTagPool(imagesTags);
+
+        if(PRINT == 1)
+            System.out.println(tagpool);
+
+        /* Calculate a map with the tags and their corresponding histogramme */
+        Map<Integer, ArrayList> histogramms = new HashMap();
+        for (int i = 0; i < poolSize; i++) {
+            ArrayList<Integer> cooccurrence = calculateCooccurrences(tagpool.get(i), representativeTags, imagesTags);
+            histogramms.put(i, cooccurrence);
+        }
+
+            /* Go through those histogramms and calculate Jenson-Shanon-Divergence for each pair */
+        for(int i = 0; i < poolSize; i++) {
+            System.out.print(i + ", ");
+            for (int i2 = i+1; i2 < poolSize; i2++) {
+                try {
+                    distanceMatrix[i][i2] = divergenceOfHistogrammes(histogramms.get(i), histogramms.get(i2));
+                }
+                catch (Exception e){
+                    System.out.println("i:" + i + "; i2:" + i2 + "; amountTags/TEST_POOL_SIZE_DIVISION :" + poolSize);
+                    System.exit(-1);
+                }
+
+            }
+        }
 
         System.out.println("");
         writeDistanceMatrixIntoFile(distanceMatrix);
