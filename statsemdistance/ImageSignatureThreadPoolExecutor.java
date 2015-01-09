@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package threadpooltest;
+package statsemdistance;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -31,14 +31,13 @@ public class ImageSignatureThreadPoolExecutor extends ThreadPoolExecutor {
     protected void afterExecute(Runnable r, Throwable t) {
         super.afterExecute(r, t);
         if (t != null) {
-            System.out.println("Perform exception handler logic");
+            // System.out.println("Perform exception handler logic");
         }
         System.out.println("Perform afterExecute() logic");
     }
     
     @Override
-    protected void terminated()
-    {
+    protected void terminated()  {
         System.out.println("Terminé");
     }
  
