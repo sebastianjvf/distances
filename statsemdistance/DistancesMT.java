@@ -549,16 +549,4 @@ public class DistancesMT {
         }
     }
 
-    /* Multithreading */
-    public static void calculateMTCooccurenceHistogram( int term,
-                                                        ArrayList<String> tagpool,
-                                                        Map imagesTags,
-                                                        ArrayList<String> representativeTags,
-                                                        Map<Integer, ArrayList> histogramms ) {
-
-        ArrayList<Integer> cooccurrence = calculateCooccurrences(tagpool.get(term), representativeTags, imagesTags);
-        histogramms.put(term, cooccurrence);
-
-    }
-
 }
