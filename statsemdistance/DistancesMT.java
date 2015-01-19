@@ -21,7 +21,7 @@ public class DistancesMT {
     public static int MIN_REFERENCE_TAG_COUNT = 25;
     public static int REFERENCE_TAG_PERCENTAGE = 2;
     public static int PRINT = 0; // Set to 0 to not print any additional information, 1 to print the progress of the programm
-    public static int TEST_POOL_SIZE_DIVISION = 40; // Reduce the size of the test set by setting a higher number; 1 indicating actual size
+    public static int TEST_POOL_SIZE_DIVISION = 1; // Reduce the size of the test set by setting a higher number; 1 indicating actual size
 
     /*
         Multithreading support
@@ -33,6 +33,7 @@ public class DistancesMT {
 
     public static Map<Integer, ArrayList> histogramms = new HashMap();
     public static ImageSignatureThreadPoolExecutor executor = new ImageSignatureThreadPoolExecutor(CORE_POOL_SIZE, MAX_POOL_SIZE, KEEP_ALIVE_TIME, TimeUnit.NANOSECONDS, blockingQueue);
+    public static double[][] distanceMatrix;
 
     /**
      * Establishes a database connection (to a postgres database) and saves all image ids and their corresponding tags to a map (string => string list).
@@ -450,7 +451,6 @@ public class DistancesMT {
         /* Initialise matrix with amountTags * amountTags; right now only a tenth! */
         int amountTags = imagesTags.size();
         int poolSize = amountTags/TEST_POOL_SIZE_DIVISION;
-        double[][] distanceMatrix = new double[poolSize][poolSize];
 
         /* Change blocking queue to blocking queue with poolSize tasks */
         blockingQueue = new ArrayBlockingQueue<Runnable>(poolSize);
@@ -469,18 +469,24 @@ public class DistancesMT {
             executor.execute(new CoocurrenceHistogramm(i, tagpool, imagesTags, representativeTags));
         }
 
+        executor.shutdown();
+
         while (!executor.isTerminated()){
         }
+        // System.out.println("Calculation of Coocurrences done!");
 
-        System.out.println("Multithreading done!");
-        /* Multithreading ends */
+        // Set distanceMatrix size
+        distanceMatrix = new double[poolSize][poolSize];
+        blockingQueue = new ArrayBlockingQueue<Runnable>((poolSize*poolSize)/2);
+        executor = new ImageSignatureThreadPoolExecutor(CORE_POOL_SIZE, MAX_POOL_SIZE, KEEP_ALIVE_TIME, TimeUnit.NANOSECONDS, blockingQueue);
+        executor.prestartAllCoreThreads();
 
             /* Go through those histogramms and calculate Jenson-Shanon-Divergence for each pair */
             for(int i = 0; i < poolSize; i++) {
                 System.out.print(i + ", ");
                 for (int i2 = i+1; i2 < poolSize; i2++) {
                     try {
-                        distanceMatrix[i][i2] = divergenceOfHistogrammes(histogramms.get(i), histogramms.get(i2));
+                        executor.execute(new DivergenceHistogramms(histogramms.get(i), histogramms.get(i2), i, i2));
                     }
                     catch (Exception e){
                         System.out.println("i:" + i + "; i2:" + i2 + "; amountTags/TEST_POOL_SIZE_DIVISION :" + poolSize);
@@ -489,6 +495,12 @@ public class DistancesMT {
 
                 }
             }
+
+        executor.shutdown();
+
+        while (!executor.isTerminated()){
+        }
+        // System.out.println("Calculation of Divergence done!");
 
         System.out.println("");
         writeDistanceMatrixIntoFile(distanceMatrix);
