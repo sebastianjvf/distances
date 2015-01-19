@@ -10,7 +10,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
- *
  * @author eegyedzsigmond
  */
 
@@ -37,7 +36,7 @@ public class ImageSignatureThreadPoolExecutor extends ThreadPoolExecutor {
     }
 
     @Override
-    protected void terminated()  {
+    protected void terminated() {
         System.out.println("Terminé");
     }
 

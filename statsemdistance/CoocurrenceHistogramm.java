@@ -7,12 +7,10 @@ package statsemdistance;
 
 import java.util.ArrayList;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
 
 import static statsemdistance.Distances.calculateCooccurrences;
 
 /**
- *
  * @author eegyedzsigmond
  */
 public class CoocurrenceHistogramm extends Thread {
@@ -21,23 +19,23 @@ public class CoocurrenceHistogramm extends Thread {
     ArrayList<String> tagpool;
     Map imagesTags;
     ArrayList<String> representativeTags;
- 
-    public CoocurrenceHistogramm( int i,
+
+    public CoocurrenceHistogramm(int i,
                                  ArrayList<String> tagpool,
                                  Map imagesTags,
-                                 ArrayList<String> representativeTags ) {
+                                 ArrayList<String> representativeTags) {
         this.i = i;
         this.tagpool = tagpool;
         this.imagesTags = imagesTags;
         this.representativeTags = representativeTags;
     }
- 
-     
+
+
     @Override
     public void run() {
 
         ArrayList<Integer> cooccurrence = calculateCooccurrences(tagpool.get(i), representativeTags, imagesTags);
         DistancesMT.histogramms.put(i, cooccurrence);
-        
+
     }
 }

@@ -6,12 +6,8 @@
 package statsemdistance;
 
 import java.util.ArrayList;
-import java.util.Map;
-
-import static statsemdistance.Distances.calculateCooccurrences;
 
 /**
- *
  * @author eegyedzsigmond
  */
 public class DivergenceHistogramms extends Thread {
@@ -30,12 +26,12 @@ public class DivergenceHistogramms extends Thread {
         this.i = i;
         this.i2 = i2;
     }
- 
-     
+
+
     @Override
     public void run() {
 
         DistancesMT.distanceMatrix[i][i2] = DistancesMT.divergenceOfHistogrammes(histogramm1, histogramm2);
-        
+
     }
 }
