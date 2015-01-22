@@ -19,14 +19,14 @@ public class StatSemDistance {
         // Map imagesTags = DistancesMT.imageTagsFromFile("example.cvs");
 
         if (DistancesMT.PRINT == 1)
-            System.out.println("ImageTags size : " + imagesTags.size());
+            System.out.println("ImageTags size: " + imagesTags.size());
 
         /* Calculate representativeTags */
         ArrayList representativeTags = DistancesMT.getRepresentativeTags(imagesTags, DistancesMT.REFERENCE_TAG_PERCENTAGE);
-        System.out.println("Most representative Tags of input: " + representativeTags);
+        System.out.println("Most representative Tags of input:\n" + representativeTags);
 
         /* Distance Matrix */
-        DistancesMT.printDistanceMatrix(DistancesMT.calculcateDistanceMatrix(imagesTags, representativeTags));
+        DistancesMT.calculcateDistanceMatrix(imagesTags, representativeTags);
     }
 
 }

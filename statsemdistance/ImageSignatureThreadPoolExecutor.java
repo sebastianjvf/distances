@@ -37,7 +37,8 @@ public class ImageSignatureThreadPoolExecutor extends ThreadPoolExecutor {
 
     @Override
     protected void terminated() {
-        System.out.println("Terminé");
+        // System.out.println("Terminé");
+        System.out.println("\n");
     }
 
 }

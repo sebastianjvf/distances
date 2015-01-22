@@ -1,4 +1,4 @@
-package statsemdistance;/* Database connection */
+package statsemdistance;
 
 import java.io.*;
 import java.sql.Connection;
@@ -7,18 +7,8 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.*;
 
-/* Collections */
-
-/**
- * Class "Distances" that uses the flickr database or a *.cvs file to deliver a distance matrix for existing tags based on their
- * cooccurrence in the images.
- *
- * @author Patrick Sebastian John von Freyend
- */
 public class Distances {
-    /**
-     * Used to set minimum reference tag count and percentage
-     */
+    /* Used to set minimum reference tag count and percentage */
     public static int MIN_REFERENCE_TAG_COUNT = 25;
     public static int REFERENCE_TAG_PERCENTAGE = 2;
     public static int PRINT = 0; // Set to 0 to not print any additional information, 1 to print the progress of the programm

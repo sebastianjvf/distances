@@ -1,4 +1,4 @@
-package statsemdistance;/* Database connection */
+package statsemdistance;
 
 import java.io.*;
 import java.sql.Connection;
@@ -10,14 +10,6 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-/* Collections */
-
-/**
- * Class "Distances" that uses the flickr database or a *.cvs file to deliver a distance matrix for existing tags based on their
- * cooccurrence in the images.
- *
- * @author Patrick Sebastian John von Freyend
- */
 public class DistancesMT {
     /* Multithreading support */
     static final int CORE_POOL_SIZE = 3;
@@ -37,7 +29,7 @@ public class DistancesMT {
 
     /**
      * Establishes a database connection (to a postgres database) and saves all image ids and their corresponding tags to a map (string => string list).
-     * Please add an appropriate postgresql-driver that corresponds to your version of the JVM to the build path.
+     * Please add an appropriate postgresql-driver that coposrresponds to your version of the JVM to the build path.
      *
      * @param url      URL to the database
      * @param user     Username for the database
@@ -234,7 +226,7 @@ public class DistancesMT {
     }
 
     /**
-     * Creates a tagpool and counts all the occurrences of each tag in imagesTags (map (string => string list))
+     * Creates a tagpool and counts all the occurrences of each tag in imagesTags (map (string => int))
      *
      * @param imagesTags Map with all the images and their corresponding tags
      * @return void
@@ -262,7 +254,7 @@ public class DistancesMT {
 
                     tagpool.put(s, 0);
 
-                    /* For every tag count through imagesTags, find each list and look for the search-tag, is it there: +1 in alltags */
+                    /* For every tag count through imagesTags, find each list and look for the search-tag, is it there: +1 in tagpool */
                     Iterator countTags = imagesTags.entrySet().iterator();
 
                     while (countTags.hasNext()) {
@@ -330,23 +322,23 @@ public class DistancesMT {
         ArrayList representativeTags = new ArrayList<String>();
 
         /*
-            1. Create Map "alltags" tag => count (0)
+            1. Create Map "tagpool" tag => count (0)
             2. Count all occurrences and add to tag pool
             3. Choose "int count" REFERENCE_TAG_PERCENTAGE, minimum MIN_REFERENCE_TAG_COUNT
         */
-        Map alltags = countOccurrences(imagesTags);
+        Map tagpool = countOccurrences(imagesTags);
 
         if (PRINT == 1)
             System.out.println("Getting most representative tags...");
 
         /* Sort the tags in descending order */
-        alltags = sortMapDescending(alltags);
+        tagpool = sortMapDescending(tagpool);
 
         /* Check the percentage, if correct, proceed */
         if (percentage > 100 || percentage < 0) System.out.println("The given percentage has to be between 0 and 100.");
         else {
             /* Calculate number of tags, at least MIN_REFERENCE_TAG_COUNT, otherwise */
-            double percentageCount = alltags.size() * percentage * 0.01;
+            double percentageCount = tagpool.size() * percentage * 0.01;
 
             if (percentageCount > MIN_REFERENCE_TAG_COUNT) {
                 double referenceCount = percentageCount;
@@ -355,7 +347,7 @@ public class DistancesMT {
             }
 
             /* Go through the map and find the number(percentageCount) highest-rated tags, add them to the list */
-            Iterator iteratorMin = alltags.entrySet().iterator();
+            Iterator iteratorMin = tagpool.entrySet().iterator();
             while (iteratorMin.hasNext() && representativeTags.size() < percentageCount) {
                 Map.Entry pair = (Map.Entry) iteratorMin.next();
                 representativeTags.add(pair.getKey());
@@ -366,7 +358,7 @@ public class DistancesMT {
     }
 
     /**
-     * Counts the coocurrence of term1 and term2 in imagesTags
+     * Counts the co-occurrence of term1 and term2 in imagesTags
      *
      * @param term
      * @param term2
@@ -455,7 +447,6 @@ public class DistancesMT {
 
     /**
      * Calculates a distance matrix for each tag in imagesTags and its representative tags (with the help of the Janson-Shanon-Divergence).
-     * It then writes this matrix in a *.csv-file located in the main folder.
      *
      * @param imagesTags
      * @param representativeTags
